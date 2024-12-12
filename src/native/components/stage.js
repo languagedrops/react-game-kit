@@ -1,52 +1,24 @@
-import React, { Component } from 'react';
+// Users/anton/Documents/Develop/Projects/react-game-kit/src/native/components/stage.js
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 import { View, Dimensions } from 'react-native';
 
-export default class Stage extends Component {
+// Create a new context for scale
+const ScaleContext = React.createContext();
 
-  static propTypes = {
-    children: PropTypes.any,
-    height: PropTypes.number,
-    style: PropTypes.object,
-    width: PropTypes.number,
-  };
+export const useScale = () => React.useContext(ScaleContext);
 
-  static defaultProps = {
-    width: 1024,
-    height: 576,
-  };
+const Stage = ({ children, height = 576, width = 1024, style }) => {
+  const [dimensions, setDimensions] = useState([0, 0]);
 
-  static contextTypes = {
-    loop: PropTypes.object,
-  }
+  useEffect(() => {
+    const { height: vheight, width: vwidth } = Dimensions.get('window');
+    setDimensions([vheight, vwidth]);
+  }, []);
 
-  static childContextTypes = {
-    loop: PropTypes.object,
-    scale: PropTypes.number,
-  };
-
-  constructor(props) {
-    super(props);
-
-    const { height, width } = Dimensions.get('window');
-
-    this.state = {
-      dimensions: [height, width ],
-    };
-  }
-
-  getChildContext() {
-    return {
-      scale: this.getScale().scale,
-      loop: this.context.loop,
-    };
-  }
-
-  getScale() {
-    const [vheight, vwidth] = this.state.dimensions;
-    const { height, width } = this.props;
-
+  const getScale = () => {
+    const [vheight, vwidth] = dimensions;
     let targetWidth;
     let targetHeight;
     let targetScale;
@@ -66,18 +38,16 @@ export default class Stage extends Component {
       width: targetWidth,
       scale: targetScale,
     };
-  }
+  };
 
-  getWrapperStyles() {
-    return {
-      flex: 1,
-    };
-  }
+  const scale = getScale();
+  const getWrapperStyles = () => ({
+    flex: 1,
+  });
 
-  getInnerStyles() {
-    const scale = this.getScale();
-    const xOffset = Math.floor((this.state.dimensions[1] - scale.width) / 2);
-    const yOffset = Math.floor((this.state.dimensions[0] - scale.height) / 2);
+  const getInnerStyles = () => {
+    const xOffset = Math.floor((dimensions[1] - scale.width) / 2);
+    const yOffset = Math.floor((dimensions[0] - scale.height) / 2);
 
     return {
       height: Math.floor(scale.height),
@@ -87,16 +57,17 @@ export default class Stage extends Component {
       left: xOffset,
       top: yOffset,
     };
-  }
+  };
 
-  render() {
-    return (
-      <View style={this.getWrapperStyles()}>
-        <View style={{ ...this.getInnerStyles(), ...this.props.style }}>
-          {this.props.children}
+  return (
+    <ScaleContext.Provider value={scale.scale}>
+      <View style={getWrapperStyles()}>
+        <View style={{ ...getInnerStyles(), ...style }}>
+          {children}
         </View>
       </View>
-    );
-  }
-
+    </ScaleContext.Provider>
+  );
 }
+
+export default Stage

@@ -1,112 +1,70 @@
-import { Component } from 'react';
-import PropTypes from 'prop-types';
+import React, { useContext, useEffect, useState } from 'react';
+import Matter, { Bodies, World } from 'matter-js';
+import { EngineContext } from './world';
 
-import Matter, { World, Bodies } from 'matter-js';
+const BodyContext = React.createContext();
 
-export default class Body extends Component {
+const Body = ({
+  angle,
+  area,
+  args = [0, 0, 100, 100],
+  axes,
+  bounds,
+  children,
+  collisionFilter,
+  density,
+  force,
+  friction = 1,
+  frictionAir,
+  frictionStatic = 0,
+  id,
+  inertia,
+  inverseInertia,
+  inverseMass,
+  isSensor,
+  isSleeping,
+  isStatic,
+  label,
+  mass,
+  position,
+  restitution = 0,
+  shape = 'rectangle',
+  sleepThreshold,
+  slop,
+  slope,
+  timeScale,
+  torque,
+  vertices,
+  ...options
+}) => {
+  const engine = useContext(EngineContext);
+  const [body, setBody] = useState(null);
 
-  static propTypes = {
-    angle: PropTypes.number,
-    area: PropTypes.string,
-    args: PropTypes.array,
-    axes: PropTypes.shape({
-      x: PropTypes.number,
-      y: PropTypes.number,
-    }),
-    bounds: PropTypes.shape({
-      min: PropTypes.shape({
-        x: PropTypes.number,
-        y: PropTypes.number,
-      }),
-      max: PropTypes.shape({
-        x: PropTypes.number,
-        y: PropTypes.number,
-      }),
-    }),
-    children: PropTypes.any,
-    collisionFilter: PropTypes.shape({
-      category: PropTypes.number,
-      group: PropTypes.number,
-      mask: PropTypes.number,
-    }),
-    density: PropTypes.number,
-    force: PropTypes.shape({
-      x: PropTypes.number,
-      y: PropTypes.number,
-    }),
-    friction: PropTypes.number,
-    frictionAir: PropTypes.number,
-    frictionStatic: PropTypes.number,
-    id: PropTypes.number,
-    inertia: PropTypes.number,
-    inverseInertia: PropTypes.number,
-    inverseMass: PropTypes.number,
-    isSensor: PropTypes.bool,
-    isSleeping: PropTypes.bool,
-    isStatic: PropTypes.bool,
-    label: PropTypes.string,
-    mass: PropTypes.number,
-    position: PropTypes.shape({
-      x: PropTypes.number,
-      y: PropTypes.number,
-    }),
-    restitution: PropTypes.number,
-    shape: PropTypes.string,
-    sleepThreshold: PropTypes.number,
-    slop: PropTypes.number,
-    slope: PropTypes.number,
-    timeScale: PropTypes.number,
-    torque: PropTypes.number,
-    vertices: PropTypes.array,
-  };
-
-  static defaultProps = {
-    args: [0, 0, 100, 100],
-    restitution: 0,
-    friction: 1,
-    frictionStatic: 0,
-    shape: 'rectangle',
-  };
-
-  static contextTypes = {
-    engine: PropTypes.object,
-  };
-
-  static childContextTypes = {
-    body: PropTypes.object,
-  };
-
-  constructor(props, context) {
-    super(props);
-
-    const { args, children, shape, ...options } = props; // eslint-disable-line no-unused-vars
-
-    this.body = Bodies[shape](...args, options);
-    World.addBody(context.engine.world, this.body);
-  }
-
-  componentWillReceiveProps(nextProps) {
-    const { args, children, shape, ...options } = nextProps; // eslint-disable-line no-unused-vars
-
-    Object.keys(options).forEach((option) => {
-      if (option in this.body && this.props[option] !== nextProps[option]) {
-        Matter.Body.set(this.body, option, options[option]);
-      }
-    });
-  }
-
-  componentWillUnmount() {
-    World.remove(this.context.engine.world, this.body);
-  }
-
-  getChildContext() {
-    return {
-      body: this.body,
+  useEffect(() => {
+    const newBody = Bodies[shape](...args, options);
+    World.addBody(engine.world, newBody);
+    setBody(newBody);
+    return () => {
+      World.remove(engine.world, newBody);
     };
-  }
+  }, [args, engine, options, shape]);
 
-  render() {
-    return this.props.children;
-  }
+  useEffect(() => {
+    if (body) {
+      Object.keys(options).forEach((option) => {
+        if (option in body) {
+          Matter.Body.set(body, option, options[option]);
+        }
+      });
+    }
+  }, [body, options]);
 
-}
+  return (
+    <BodyContext.Provider value={body}>
+      {children}
+    </BodyContext.Provider>
+  );
+};
+
+export { BodyContext };
+export default Body;
